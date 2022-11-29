@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Product Recommendations</title>
+    <style>
+         ul {
+  list-style-type: none;
+}
+
+li {
+  display: inline-block;
+}
+img {
+  height: 100px;
+  width: 100px;
+  transition-duration: 0.2s;
+  transform-origin: 50% 50%;
+}
+    </style>
+    </head>
+    <body>
+<div>
+    <div>{{msg}}</div>
+    <ul>
+        {% for p in recommendations %}
+        
+        <li>
+          <img src="{{p}}">
+        </li>
+
+        {% endfor %}
+    </ul>
+</div>
+<form method="GET"  action="{{ url_for('index')}}">
+    <button type="submit">Go back to choose some more products</button>
+</form>
+    </body>
+    </html>
