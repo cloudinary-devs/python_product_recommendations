@@ -3,25 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <title>Product Recommendations</title>
+    <link rel="stylesheet" type="text/css" href="/static/main.css">
     <style>
-         ul {
-  list-style-type: none;
-}
+      h1{
+      margin-left:40px;
+      
+    }
+     
+button{
+  
+  margin-left:40px;
 
-li {
-  display: inline-block;
-}
-img {
-  height: 100px;
-  width: 100px;
-  transition-duration: 0.2s;
-  transform-origin: 50% 50%;
-}
+      }
     </style>
     </head>
     <body>
 <div>
-    <div>{{msg}}</div>
+    <div><h1>{{msg}}</h1></div>
     <ul>
         {% for p in recommendations %}
         

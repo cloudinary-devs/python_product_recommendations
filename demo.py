@@ -24,7 +24,7 @@ import json
 from flask import Flask, render_template, request
 import json
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 
 def img_upload():
   listOfImgs = os.listdir(os.path.join(os.getcwd()+'/Images'))
@@ -56,7 +56,7 @@ def index():
   imgs=[]
   count=1
   for asset in result['resources']:
-    url="https://res.cloudinary.com/demo/image/upload/v"+str(asset["version"])+"/" +asset["public_id"]
+    url="https://res.cloudinary.com/demo/image/upload/f_auto/q_auto/c_fill_pad,g_auto,w_100,h_100/v"+str(asset["version"])+"/" +asset["public_id"]
     img_entry={'url':url, 'id':"myCheckbox"+str(count), 'public_id':asset['public_id']}
     imgs.append(img_entry)
     if count==10:
@@ -113,7 +113,8 @@ def output():
     for prod in recommended_products:
       for asset in result['resources']:
         if asset['public_id']==prod:
-          url="https://res.cloudinary.com/demo/image/upload/v"+str(asset["version"])+"/" +asset["public_id"]
+          url="https://res.cloudinary.com/demo/image/upload/f_auto/q_auto/c_fill_pad,g_auto,w_100,h_100/v"+str(asset["version"])+"/" +asset["public_id"]
+          print(url)
           recommendations.append(url)
 
     message="We thought you might like to try these:"
