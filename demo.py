@@ -75,57 +75,33 @@ def index():
 
 @app.route("/output", methods=['POST'])
 def output():
-  # Capture the public IDs of the selected images.
-  selected_imgs = request.form.getlist("selected_imgs")
-
-  # Display an error message if no images were selected.
-  if not selected_imgs:
-    message="Select at least one product image."
-    recommendations=[]
-  else:
-    # If one or more images were selected, find the 3 most frequent tags for those images.
-    result = all_images()
-    tags=[]
-    tag_list=[]
-    # Look up the details for each selected image.
-    for img in selected_imgs:
-      for asset in result['resources']:
-        if asset['public_id']==img:
-          img_details = cloudinary.api.resource(img)
-          # Keep a list of all the tags from all selected images. 
-          for tag in img_details['tags']:
-            # Remove irrelevant tags.
-            if tag != "adult" and tag != "my_products":
-              tag_list.append(tag)
-    # Get the 3 most popular tags.
-    most_frequent_tags=most_frequent(tag_list)
-
-
-
-    recommendations=[]
-    # Find the images that contain each of the 3 most popular tags.
-
-    for frequent_tag in most_frequent_tags:
-      # Go through each of the uploaded images.
-      for asset in result['resources']:
-        show="yes"
-        # Get the details of each image.
-        img_details = cloudinary.api.resource(asset['public_id'])
-        for i in selected_imgs:
-          # Don’t recommend an image that the user's already selected.
-          if i == asset['public_id']:
-            show="no"
-          # If the image contains a popular tag, add its URL to recommendations.
-          if frequent_tag[0] in img_details['tags'] and show=="yes":
-            # Add transformations to the URL to fit the image in the thumbnail.
-            url="https://res.cloudinary.com/demo/image/upload/f_auto/q_auto/c_fill_pad,g_auto,w_100,h_100/v"+str(asset["version"])+"/" +asset["public_id"]
-            # Exclude doubles.
-            if url not in recommendations:
-              recommendations.append(url)
-
-    message="We thought you might like to try these:"
-  # Display the product recommendations in ‘output.html’
-  return render_template('output.html', recommendations=recommendations, msg=message)
+    selected_imgs = request.form.getlist("selected_imgs")
+    if not selected_imgs:
+        message = "Select at least one product image."
+        recommendations = []
+    else:
+        result = all_images()
+        tag_list = []
+        for img in selected_imgs:
+            for asset in result['resources']:
+                if asset['public_id'] == img:
+                    img_details = cloudinary.api.resource(img)
+                    tag_list.extend(tag for tag in img_details['tags'] if tag not in ["adult", "my_products"])
+        most_frequent_tags = most_frequent(tag_list)
+        recommendations = []
+        for frequent_tag in most_frequent_tags:
+            for asset in result['resources']:
+                show = "yes"
+                img_details = cloudinary.api.resource(asset['public_id'])
+                for i in selected_imgs:
+                    if i == asset['public_id']:
+                        show = "no"
+                    if frequent_tag[0] in img_details['tags'] and show == "yes":
+                        url="https://res.cloudinary.com/demo/image/upload/f_auto/q_auto/c_fill_pad,g_auto,w_100,h_100/v"+str(asset["version"])+"/" +asset["public_id"]         
+                        if url not in recommendations:
+                            recommendations.append(url)
+        message = "We thought you might like to try these:"
+    return render_template('output.html', recommendations=recommendations, msg=message)
 
 def most_frequent(List):
     c = Counter(List)
