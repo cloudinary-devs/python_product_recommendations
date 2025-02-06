@@ -3,35 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <title>Product Recommendations</title>
-    <link rel="stylesheet" type="text/css" href="/static/main.css">
+    <link rel="stylesheet" type="text/css" href="/static/main.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      h1{
-      margin-left:40px;
-      
-    }
-     
-button{
-  
-  margin-left:40px;
-
+      h1 {
+        margin-left: 40px;
+      }
+      button {
+        margin-left: 40px;
       }
     </style>
-    </head>
-    <body>
-<div>
-    <div><h1>{{msg}}</h1></div>
-    <ul>
+  </head>
+  <body>
+    <div class="w-full h-screen flex flex-col items-center justify-center">
+      <div><h1>{{msg}}</h1></div>
+      <ul>
         {% for p in recommendations %}
-        
+
         <li>
-          <img src="{{p}}">
+          <img src="{{p}}" />
         </li>
 
         {% endfor %}
-    </ul>
-</div>
-<form method="GET"  action="{{ url_for('index')}}">
-    <button type="submit">Choose Products</button>
-</form>
-    </body>
-    </html>
+      </ul>
+          <form method="GET" action="{{ url_for('index')}}" class="flex flex-col items-center">
+      <button
+        type="submit"
+        class="bg-[#0095FF] rounded-full h-[36px] flex items-center justify-center cursor-pointer text-[16px] gap-[4px] px-[28px] py-[8px] no-underline font-bold transition duration-300 text-white"
+      >
+        Start Over
+      </button>
+    </form>
+    </div>
+  </body>
+</html>

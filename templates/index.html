@@ -1,35 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Product Recommendations</title>
+    <link rel="stylesheet" type="text/css" href="/static/main.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style></style>
+  </head>
+  <body class="w-full h-screen flex items-center justify-center flex-col">
+    <div class="container">
+      <h1 class="font">Product Recomendations:</h1>
+      <div
+        class="bg-blue-100 w-full text-blue-800 px-4 py-2 rounded-md flex items-center gap-2 w-full mb-4 text-sm"
+      >
+        <p>
+          To generate recommendations, please select at least one product. Our
+          system will intelligently curate images from the Cloudinary gallery
+          based on AI-generated tags, ensuring that the most relevant products
+          are selected to match your chosen product.
+        </p>
+      </div>
+    </div>
 
-<head>
-  <meta charset="UTF-8" />
-  <title>Product Recommendations</title>
-  <link rel="stylesheet" type="text/css" href="/static/main.css">
-</head>
+    <!--This form displays the product images and returns user selections to the backend.-->
+    <form method="POST" action="{{ url_for('output')}}" class="flex flex-col items-center">
+      <ul>
+        {% for i in imgs %}
 
-<body>
+        <li>
+          <input
+            type="checkbox"
+            name="selected_imgs"
+            id="{{i['id']}}"
+            value="{{i['public_id']}}"
+          />
+          <label for="{{i['id']}}"><img src="{{i['url']}}" /></label>
+        </li>
 
-  <div class="container">
-    <h1>Please select one or more products:</h1>
-  </div>
+        {% endfor %}
+      </ul>
 
-  <!--This form displays the product images and returns user selections to the backend.-->
-  <form method="POST" action="{{ url_for('output')}}">
-
-    <ul>
-      {% for i in imgs %}
-
-      <li>
-        <input type="checkbox" name="selected_imgs" id="{{i['id']}}" value="{{i['public_id']}}" />
-        <label for="{{i['id']}}"><img src="{{i['url']}}" /></label>
-      </li>
-
-      {% endfor %}
-    </ul>
-
-    <button type="submit">Submit</button>
-  </form>
-
-</body>
-
+      <button type="submit" class="bg-[#0095FF] rounded-full h-[36px] flex items-center justify-center cursor-pointer text-[16px] gap-[4px] px-[28px] py-[8px] no-underline font-bold transition duration-300 text-white">Submit</button>
+    </form>
+  </body>
 </html>
