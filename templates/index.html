@@ -2,12 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Product Recommendations</title>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
     <link rel="stylesheet" type="text/css" href="/static/main.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style></style>
   </head>
-  <body class="w-full h-screen flex items-center justify-center flex-col">
+  <body class="w-full min-h-screen flex items-center justify-center flex-col py-8">
     <div class="container">
       <h1 class="font">Product Recomendations:</h1>
       <div
@@ -20,11 +22,16 @@
           are selected to match your chosen product.
         </p>
       </div>
+      {% if error %}
+      <div class="bg-red-100 w-full text-red-800 px-4 py-2 rounded-md mb-4 text-sm" role="alert">
+        <p>{{ error }}</p>
+      </div>
+      {% endif %}
     </div>
 
     <!--This form displays the product images and returns user selections to the backend.-->
-    <form method="POST" action="{{ url_for('output')}}" class="flex flex-col items-center">
-      <ul>
+    <form method="POST" action="{{ url_for('output')}}" class="flex flex-col items-center w-full">
+      <ul class="product-grid">
         {% for i in imgs %}
 
         <li>
@@ -34,7 +41,16 @@
             id="{{i['id']}}"
             value="{{i['public_id']}}"
           />
-          <label for="{{i['id']}}"><img src="{{i['url']}}" /></label>
+          <label for="{{i['id']}}"
+            ><img
+              src="{{i['url']}}"
+              srcset="{{i['srcset']}}"
+              width="{{thumb_size}}"
+              height="{{thumb_size}}"
+              alt="{{i['public_id'].split('/')[-1].replace('_', ' ')}}"
+              decoding="async"
+              {% if loop.index > 5 %}loading="lazy"{% else %}fetchpriority="high"{% endif %}
+          /></label>
         </li>
 
         {% endfor %}

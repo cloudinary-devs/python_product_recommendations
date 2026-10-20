@@ -2,7 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Product Recommendations</title>
+    <link rel="preconnect" href="https://res.cloudinary.com" crossorigin />
     <link rel="stylesheet" type="text/css" href="/static/main.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -15,13 +17,22 @@
     </style>
   </head>
   <body>
-    <div class="w-full h-screen flex flex-col items-center justify-center">
+    <div class="w-full min-h-screen flex flex-col items-center justify-center py-8">
       <div><h1>{{msg}}</h1></div>
-      <ul>
+      <ul class="product-grid">
         {% for p in recommendations %}
 
         <li>
-          <img src="{{p['url']}}" />
+          <img
+            src="{{p['url']}}"
+            srcset="{{p['srcset']}}"
+            width="{{thumb_size}}"
+            height="{{thumb_size}}"
+            alt="{{p['public_id'].split('/')[-1].replace('_', ' ')}}"
+            title="Matched tags: {{p['tags'] | join(', ')}}"
+            decoding="async"
+            {% if loop.index > 6 %}loading="lazy"{% else %}fetchpriority="high"{% endif %}
+          />
         </li>
 
         {% endfor %}
