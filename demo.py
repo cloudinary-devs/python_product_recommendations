@@ -5,35 +5,41 @@ load_dotenv()
 # import Cloudinary libraries
 import cloudinary
 from cloudinary import uploader
-import cloudinary.api
-from cloudinary.utils import cloudinary_url
+from cloudinary import CloudinaryImage
 
 # import other libraries
+import logging
 import os
-import threading
-from collections import Counter
-from urllib.request import urlopen
-import ssl
-import json
 
-# get reference to config instance
-# config = cloudinary.Config()
-# print(config.cloud_name)
-# print(config.api_key)
-
+import click
 from flask import Flask, render_template, request
-import json
+
+import catalog
+from recommender import recommend
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
 
 app = Flask(__name__, static_url_path='/static')
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGES_DIR = os.path.join(BASE_DIR, 'Images')
+IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.webp', '.gif')
+
+# Number of products shown on the homepage.
+GALLERY_SIZE = 10
+# Displayed size (CSS pixels) of each product thumbnail.
+THUMB_SIZE = 100
+
+
 def img_upload():
   # Get your images stored in a local directory.
-  listOfImgs = os.listdir(os.path.join(os.getcwd()+'/Images'))
+  listOfImgs = sorted(f for f in os.listdir(IMAGES_DIR) if f.lower().endswith(IMAGE_EXTENSIONS))
 
   # Upload all those images to Cloudinary with auto-tagging.
-  for key,row in enumerate(listOfImgs):
-    resp=cloudinary.uploader.upload('Images/'+row,
-      categorization = "aws_rek_tagging", 
+  for row in listOfImgs:
+    resp = cloudinary.uploader.upload(os.path.join(IMAGES_DIR, row),
+      categorization = "aws_rek_tagging",
       auto_tagging = 0.8,
       use_filename = True,
       unique_filename = False,
@@ -41,81 +47,87 @@ def img_upload():
       folder = "tagged_images",
       transformation = "/c_fill,g_auto,w_250,h_250/f_auto/q_auto",
       # You’ll use the my_products tag to retrieve all the images.
-      tag="my_products"
+      tags = [catalog.PRODUCT_TAG]
       )
+    log.info("Uploaded %s with tags: %s", resp['public_id'], ', '.join(resp.get('tags', [])))
+
+  # New uploads should show up on the next request.
+  catalog.clear_cache()
+
+
+@app.cli.command("upload-images")
+def upload_images_command():
+  """Upload everything in Images/ to Cloudinary with AI auto-tagging."""
+  img_upload()
+  click.echo("Upload complete.")
+
+
+def image_url(asset, size=THUMB_SIZE):
+  # Build the delivery URL for the asset: f_auto/q_auto pick the best format and
+  # quality for the browser, and c_fill_pad with g_auto keeps the product in frame.
+  return CloudinaryImage(asset['public_id']).build_url(
+    cloud_name=catalog.cloud_name(),
+    secure=True,
+    version=asset.get('version'),
+    transformation=[
+      {'fetch_format': 'auto'},
+      {'quality': 'auto'},
+      # Raw string keeps the original w_,h_ order so already-derived images are reused.
+      {'raw_transformation': f'c_fill_pad,g_auto,w_{size},h_{size}'},
+    ],
+  )
+
+
+def image_entry(asset, index):
+  # Image information for the templates, including a 2x variant for high-DPI screens.
+  return {
+    'url': image_url(asset),
+    'srcset': f"{image_url(asset)} 1x, {image_url(asset, THUMB_SIZE * 2)} 2x",
+    'id': "myCheckbox" + str(index),
+    'public_id': asset['public_id'],
+    'tags': asset.get('matched_tags', []),
+  }
+
+
+def load_catalog():
+  try:
+    return catalog.get_catalog(), None
+  except Exception:
+    log.exception("Could not load the product catalog from Cloudinary")
+    return [], "Could not load products from Cloudinary. Check your CLOUDINARY_URL and try again."
 
 
 @app.route("/", methods=['GET'])
 def index():
-  # Only call the img_upload function to upload your images the first time you run this program.
+  # To upload your images the first time you run this program, run: flask --app demo upload-images
 
-  # thread = threading.Thread(target=img_upload)
-  # thread.start()
-
-  # wait here for the result to be available before continuing
-  # thread.join()
- 
-  # Get all the images you uploaded and display the first ten of them in ‘index.html’.  
-  result = all_images()
-  imgs=[]
-  count=1
-  for asset in result['resources']:
-    # Build the delivery URL for the asset. 
-    url="https://res.cloudinary.com/demo/image/upload/f_auto/q_auto/c_fill_pad,g_auto,w_100,h_100/v"+str(asset["version"])+"/" +asset["public_id"]
-    # Add image information, including image url and public ID,  to an array for displaying all the images
-    # in index.html.
-    img_entry={'url':url, 'id':"myCheckbox"+str(count), 'public_id':asset['public_id']}
-    imgs.append(img_entry)
-    if count==10:
-      break
-    count+=1
-    
-  return render_template('index.html', imgs=imgs)
+  # Get all the images you uploaded and display the first ten of them in ‘index.html’.
+  assets, error = load_catalog()
+  imgs = [image_entry(asset, count) for count, asset in enumerate(assets[:GALLERY_SIZE], start=1)]
+  return render_template('index.html', imgs=imgs, error=error, thumb_size=THUMB_SIZE)
 
 
 @app.route("/output", methods=['POST'])
 def output():
     selected_imgs = request.form.getlist("selected_imgs")
+    recommendations = []
     if not selected_imgs:
         message = "Select at least one product image."
-        recommendations = []
     else:
-        result = all_images()
-        tag_list = []
-        for img in selected_imgs:
-            for asset in result['resources']:
-                if asset['public_id'] == img:
-                    img_details = cloudinary.api.resource(img)
-                    tag_list.extend(tag for tag in img_details['tags'] if tag not in ["adult", "my_products"])
-        most_frequent_tags = most_frequent(tag_list)
-        recommendations = []
-        for frequent_tag in most_frequent_tags:
-            for asset in result['resources']:
-                show = "yes"
-                img_details = cloudinary.api.resource(asset['public_id'])
-                for i in selected_imgs:
-                    if i == asset['public_id']:
-                        show = "no"
-                    if frequent_tag[0] in img_details['tags'] and show == "yes":
-                        url="https://res.cloudinary.com/demo/image/upload/f_auto/q_auto/c_fill_pad,g_auto,w_100,h_100/v"+str(asset["version"])+"/" +asset["public_id"]         
-                        if url not in recommendations:
-                            recommendations.append(url)
-        message = "We thought you might like to try these:"
-    return render_template('output.html', recommendations=recommendations, msg=message)
+        assets, error = load_catalog()
+        if error:
+            message = error
+        else:
+            # Rank the rest of the catalog by the selection's most frequent AI tags.
+            ranked = recommend(selected_imgs, assets)
+            recommendations = [image_entry(asset, count) for count, asset in enumerate(ranked, start=1)]
+            message = "We thought you might like to try these:"
+            if not recommendations and not catalog.has_api_credentials():
+                message = "Recommendations need AI tags. Set CLOUDINARY_URL to load them with the Admin API."
+            elif not recommendations:
+                message = "No similar products found. Try selecting a different product."
+    return render_template('output.html', recommendations=recommendations, msg=message, thumb_size=THUMB_SIZE)
 
-def most_frequent(List):
-    c = Counter(List)
-    return c.most_common(3)
-   
-def all_images():
-  # Return a JSON with  all the images you uploaded using the cloudinary_url method from the
-  # cloudinary.utils library. 
-  # You can also use the resources method from the admin API (rate-limited).
-  cloudinary_url("my_products.json", type="list")
-  context = ssl._create_unverified_context()
-  response = urlopen("https://res.cloudinary.com/demo/image/list/my_products.json", context=context)
-  result = json.loads(response.read())
-  return result
 
 if __name__ == "__main__":
-  app.run()
+  app.run(port=int(os.environ.get("PORT", 5000)))

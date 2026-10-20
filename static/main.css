@@ -100,4 +100,30 @@ h1 {
 
   button:focus {
     background: gray;
+  }  /* Fluid product grid: columns reflow to the viewport width. */
+  ul.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
+    justify-items: center;
+    width: 100%;
+    max-width: 920px;
+    padding: 0 16px;
+    margin: 0 auto 16px;
+  }
+
+  ul.product-grid li {
+    display: block;
+  }
+
+  /* Reserve space and show a placeholder while thumbnails load (no layout shift). */
+  ul.product-grid img {
+    width: 100px;
+    height: 100px;
+    background-color: #f1f3f5;
+    border-radius: 4px;
+    object-fit: cover;
+  }
+
+  ul.product-grid > li > img {
+    margin: 20px;
   }
